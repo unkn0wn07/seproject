@@ -7,12 +7,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Log database connection attempt on startup
-if (process.env.DATABASE_URL) {
-  pool.query('SELECT NOW()')
-    .then(() => console.log('✅ Connected to PostgreSQL / Supabase database'))
-    .catch(e => console.error('❌ Database connection failed:', e.message));
-}
+
 
 const router = express.Router();
 
@@ -804,6 +799,11 @@ app.use(express.static(path.join(__dirname, '..')));
 // Preserve local development server startup
 if (require.main === module) {
   const PORT = process.env.PORT || 5000;
+  if (process.env.DATABASE_URL) {
+    pool.query('SELECT NOW()')
+      .then(() => console.log('✅ Connected to PostgreSQL / Supabase database'))
+      .catch(e => console.error('❌ Database connection failed:', e.message));
+  }
   app.listen(PORT, () => {
     console.log(`🏥 Hospital Management Server running on http://localhost:${PORT}`);
   });

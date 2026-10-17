@@ -8,98 +8,142 @@
   node_bundler = "esbuild"
   external_node_modules = ["pg-native"]
 
+# Security: Block static direct access to backend code, configs, and hidden files
+[[redirects]]
+  from = "/backend/*"
+  to = "/index.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/netlify/*"
+  to = "/index.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/package*.json"
+  to = "/index.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/.env*"
+  to = "/index.html"
+  status = 404
+  force = true
+
 # Route API endpoints directly to Netlify Functions
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api/:splat"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/dashboard"
   to = "/.netlify/functions/api/dashboard"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/patients/*"
   to = "/.netlify/functions/api/patients/:splat"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/patients"
   to = "/.netlify/functions/api/patients"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/doctors/*"
   to = "/.netlify/functions/api/doctors/:splat"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/doctors"
   to = "/.netlify/functions/api/doctors"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/nurses/*"
   to = "/.netlify/functions/api/nurses/:splat"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/nurses"
   to = "/.netlify/functions/api/nurses"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/staff/*"
   to = "/.netlify/functions/api/staff/:splat"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/staff"
   to = "/.netlify/functions/api/staff"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/appointments/*"
   to = "/.netlify/functions/api/appointments/:splat"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/appointments"
   to = "/.netlify/functions/api/appointments"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/admissions/*"
   to = "/.netlify/functions/api/admissions/:splat"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/admissions"
   to = "/.netlify/functions/api/admissions"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/rooms/*"
   to = "/.netlify/functions/api/rooms/:splat"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/rooms"
   to = "/.netlify/functions/api/rooms"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/departments/*"
   to = "/.netlify/functions/api/departments/:splat"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/departments"
   to = "/.netlify/functions/api/departments"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/hospitals"
   to = "/.netlify/functions/api/hospitals"
   status = 200
+  force = true

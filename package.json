@@ -7,7 +7,7 @@
     "start": "node backend/server.js",
     "dev": "nodemon backend/server.js",
     "verify-db": "node backend/verify-db.js",
-    "build": "cd backend && npm install"
+    "build": "npm --prefix backend install"
   },
   "dependencies": {
     "cors": "^2.8.5",

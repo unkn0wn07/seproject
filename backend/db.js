@@ -38,8 +38,8 @@ const sslOption = (dbSslEnv === 'false' || dbSslEnv === 'disable' || dbSslEnv ==
 const pool = new Pool({
   connectionString,
   ssl: sslOption,
-  max: 10,
-  idleTimeoutMillis: 30000,
+  max: process.env.DB_MAX_CONNECTIONS ? parseInt(process.env.DB_MAX_CONNECTIONS, 10) : (process.env.NETLIFY ? 4 : 10),
+  idleTimeoutMillis: 20000,
   connectionTimeoutMillis: 10000,
 });
 

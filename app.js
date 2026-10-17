@@ -2,12 +2,15 @@
    MediCare HMS — Full CRUD Application Logic
    ═══════════════════════════════════════════════════════════════ */
 
-// Determine API base URL:
-// - On Netlify or when served from the local Express server, use relative path ''
-// - When running frontend via Live Server (port 5500) or file://, fallback to 'http://localhost:5000'
-const API = (typeof window !== 'undefined' && window.location.origin && window.location.origin !== 'null' && !window.location.origin.startsWith('file:') && window.location.port !== '5500')
-  ? ''
-  : 'http://localhost:5000';
+// Configurable API base URL:
+// - Allows window.API_BASE_URL to override the endpoint (e.g., if hosted separately)
+// - On Netlify or same-origin deployment, defaults to '/api'
+// - When running frontend via Live Server (port 5500) or file://, fallback to 'http://localhost:5000/api'
+const API = (typeof window !== 'undefined' && window.API_BASE_URL)
+  ? window.API_BASE_URL.replace(/\/+$/, '')
+  : (typeof window !== 'undefined' && window.location.origin && window.location.origin !== 'null' && !window.location.origin.startsWith('file:') && window.location.port !== '5500')
+    ? '/api'
+    : 'http://localhost:5000/api';
 
 
 const PAGE_META = {
@@ -71,7 +74,8 @@ function navigateTo(page) {
 
 // ── API HELPER ────────────────────────────────────────────────────────────────
 async function apiFetch(endpoint, options = {}) {
-  const res = await fetch(API + endpoint, {
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const res = await fetch(API + cleanEndpoint, {
     headers: { 'Content-Type': 'application/json' }, ...options
   });
   const data = await res.json();
@@ -142,7 +146,22 @@ async function loadDashboard() {
     animateCount('stat-nurses', d.nurses);     animateCount('stat-rooms', d.rooms);
     animateCount('stat-appointments', d.appointments); animateCount('stat-admissions', d.admissions);
     document.getElementById('lastRefresh').textContent = new Date().toLocaleTimeString();
-  } catch(e) { showToast('Could not load dashboard. Is the backend running?','error'); }
+    const serverBadge = document.getElementById('serverStatusBadge');
+    if (serverBadge) serverBadge.textContent = 'Connected ✓';
+    const apiBadge = document.getElementById('apiModeBadge');
+    if (apiBadge) {
+      apiBadge.textContent = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+        ? 'Local API'
+        : 'Netlify Functions';
+    }
+  } catch(e) {
+    showToast('Could not load dashboard. Is the backend running?', 'error');
+    const serverBadge = document.getElementById('serverStatusBadge');
+    if (serverBadge) {
+      serverBadge.textContent = 'Disconnected ✗';
+      serverBadge.className = 'info-value badge-red';
+    }
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
