@@ -1,6 +1,14 @@
+// Load .env FIRST so process.env.DATABASE_URL is populated before db.js is required.
+// On Netlify, environment variables are injected by the platform and dotenv is a no-op.
+const path = require('path');
+const fs = require('fs');
+const dotenvPath = fs.existsSync(path.resolve(__dirname, '.env'))
+  ? path.resolve(__dirname, '.env')
+  : path.resolve(__dirname, '..', '.env');
+require('dotenv').config({ path: dotenvPath });
+
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
 const { pool, normalizeRows } = require('./db');
 
 const app = express();
@@ -10,6 +18,25 @@ app.use(express.json());
 
 
 const router = express.Router();
+
+// ── HEALTH CHECK ──────────────────────────────────────────────────────────────
+// Used by the frontend serverStatusBadge and Netlify monitoring.
+// Returns 200 + JSON on success, 503 if the DB query fails.
+router.get('/health', async (req, res) => {
+  try {
+    const start = Date.now();
+    await pool.query('SELECT 1');
+    res.json({
+      status: 'ok',
+      database: 'connected',
+      latency_ms: Date.now() - start,
+      timestamp: new Date().toISOString()
+    });
+  } catch (e) {
+    console.error('Health check failed:', e.message);
+    res.status(503).json({ status: 'error', database: 'disconnected', error: e.message });
+  }
+});
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
 router.get('/dashboard', async (req, res) => {

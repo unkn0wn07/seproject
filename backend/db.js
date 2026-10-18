@@ -1,18 +1,7 @@
 const { Pool } = require('pg');
-const path = require('path');
-const dotenv = require('dotenv');
 
-const fs = require('fs');
-
-// Load environment variables without duplicate injection or conflicts
-const backendEnv = path.resolve(__dirname, '.env');
-const rootEnv = path.resolve(__dirname, '..', '.env');
-
-if (fs.existsSync(backendEnv)) {
-  dotenv.config({ path: backendEnv });
-} else if (fs.existsSync(rootEnv)) {
-  dotenv.config({ path: rootEnv });
-}
+// NOTE: dotenv is loaded once, early in server.js, before this module is required.
+// On Netlify, DATABASE_URL is injected directly into process.env — no .env file exists.
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -25,8 +14,12 @@ if (connectionString) {
     console.log('🔌 [DATABASE] DATABASE_URL detected | (Custom connection string format)');
   }
 } else {
-  console.warn('⚠️  [DATABASE WARNING] DATABASE_URL environment variable is not defined.');
-  console.warn('   Please configure DATABASE_URL in your .env file or deployment settings.');
+  // Throw immediately so the Netlify function log shows a clear cause instead of
+  // a cryptic 'ECONNREFUSED 127.0.0.1:5432' from pg falling back to localhost defaults.
+  throw new Error(
+    '[FATAL] DATABASE_URL environment variable is not set. ' +
+    'Add it in: Netlify Dashboard → Site Settings → Environment Variables.'
+  );
 }
 
 // Supabase and hosted PostgreSQL require SSL
