@@ -15,7 +15,42 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// ── DATE VALIDATION HELPERS ───────────────────────────────────────────────────
+/**
+ * Returns today's date string in YYYY-MM-DD format using server local time.
+ * Note: For a hospital app, server-side validation compares against UTC date.
+ * We use ISO date comparison to stay consistent with DATE column storage.
+ */
+function getTodayUTCDateString() {
+  const now = new Date();
+  return now.toISOString().split('T')[0]; // YYYY-MM-DD in UTC
+}
 
+/** Returns current UTC time as HH:MM string. */
+function getCurrentUTCTimeString() {
+  const now = new Date();
+  const h = String(now.getUTCHours()).padStart(2, '0');
+  const m = String(now.getUTCMinutes()).padStart(2, '0');
+  return `${h}:${m}`;
+}
+
+/**
+ * Returns true if the given YYYY-MM-DD date string is today or in the future.
+ * Comparison is done in UTC to match ISO storage conventions.
+ */
+function isTodayOrFutureDate(dateStr) {
+  if (!dateStr) return false;
+  return dateStr >= getTodayUTCDateString();
+}
+
+/**
+ * Returns true if the given time string (HH:MM) is in the past for today.
+ * Only meaningful when dateStr equals today's date.
+ */
+function isPastTimeForToday(timeStr) {
+  if (!timeStr) return false;
+  return timeStr < getCurrentUTCTimeString();
+}
 
 const router = express.Router();
 
@@ -524,6 +559,13 @@ router.get('/appointments', async (req, res) => {
 
 router.post('/appointments', async (req, res) => {
   const { Appointment_ID, Date: date, Time: time, Patient_ID, Staff_ID } = req.body;
+  // Backend date/time validation
+  if (!date || !isTodayOrFutureDate(date)) {
+    return res.status(400).json({ error: 'Appointment date must be today or a future date.' });
+  }
+  if (date === getTodayUTCDateString() && time && isPastTimeForToday(time)) {
+    return res.status(400).json({ error: 'Appointment time cannot be in the past for today.' });
+  }
   try {
     await pool.query(
       `INSERT INTO appointment ("Appointment_ID", "Date", "Time", "Patient_ID", "Staff_ID")
@@ -602,6 +644,10 @@ router.get('/admissions', async (req, res) => {
 
 router.post('/admissions', async (req, res) => {
   const { Admission_ID, Admit_Date, Discharge_Date, Patient_ID, Room_ID, Staff_ID } = req.body;
+  // Backend date validation
+  if (!Admit_Date || !isTodayOrFutureDate(Admit_Date)) {
+    return res.status(400).json({ error: 'Admission date must be today or a future date.' });
+  }
   try {
     await pool.query(
       `INSERT INTO admission ("Admission_ID", "Admit_Date", "Discharge_Date", "Patient_ID", "Room_ID", "Staff_ID")

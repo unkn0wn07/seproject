@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════
-   MediCare HMS — Full CRUD Application Logic
+   HealthDesk HMS — Full CRUD Application Logic
    ═══════════════════════════════════════════════════════════════ */
 
 // Configurable API base URL:
@@ -40,6 +40,45 @@ document.addEventListener('DOMContentLoaded', () => {
 function setDate() {
   document.getElementById('topbarDate').textContent =
     new Date().toLocaleDateString(undefined, { weekday:'short', year:'numeric', month:'short', day:'numeric' });
+}
+
+// ── DATE/TIME HELPERS ─────────────────────────────────────────────────────────
+/** Returns today's date string in YYYY-MM-DD format (local time). */
+function getTodayDateString() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/** Returns current local time in HH:MM format (rounded to minute). */
+function getCurrentTimeString() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2, '0');
+  const min = String(now.getMinutes()).padStart(2, '0');
+  return `${h}:${min}`;
+}
+
+/**
+ * Called whenever the appointment date changes.
+ * If today is selected: sets the time min to current local time.
+ * If a future date is selected: removes the time minimum.
+ */
+function updateApptTimeMin() {
+  const dateEl = document.getElementById('a_date');
+  const timeEl = document.getElementById('a_time');
+  if (!dateEl || !timeEl) return;
+  const today = getTodayDateString();
+  if (dateEl.value === today) {
+    timeEl.min = getCurrentTimeString();
+    // Clear the time if it's now before the minimum
+    if (timeEl.value && timeEl.value < timeEl.min) {
+      timeEl.value = '';
+    }
+  } else {
+    timeEl.removeAttribute('min');
+  }
 }
 
 // ── NAVIGATION ────────────────────────────────────────────────────────────────
@@ -485,10 +524,15 @@ async function openApptModal(data=null) {
   document.getElementById('apptSubmitBtn').textContent  = isEdit ? 'Update Appointment' : 'Book Appointment';
   document.getElementById('a_editing_id').value = isEdit ? data.Appointment_ID : '';
   document.getElementById('a_id').value       = isEdit ? data.Appointment_ID : ''; document.getElementById('a_id').disabled = isEdit;
+  // Set min date to today (no past dates allowed)
+  const todayStr = getTodayDateString();
+  document.getElementById('a_date').min = todayStr;
   document.getElementById('a_date').value     = isEdit ? (data.Date?.split('T')[0]||'') : '';
   document.getElementById('a_time').value     = isEdit ? (data.Time||'') : '';
   document.getElementById('a_patient').value  = isEdit ? data.Patient_ID : '';
   document.getElementById('a_doctor').value   = isEdit ? data.Staff_ID  : '';
+  // Apply time minimum if opening on today's date
+  updateApptTimeMin();
   openModal('apptModal');
 }
 function editAppt(i) { openApptModal(_appointments[i]); }
@@ -496,10 +540,22 @@ function editAppt(i) { openApptModal(_appointments[i]); }
 async function saveAppt(e) {
   e.preventDefault();
   const editId = document.getElementById('a_editing_id').value;
+  const dateVal = document.getElementById('a_date').value;
+  const timeVal = document.getElementById('a_time').value;
+  // Frontend date/time validation
+  const today = getTodayDateString();
+  if (dateVal < today) {
+    showToast('Appointment date cannot be in the past.', 'error');
+    return;
+  }
+  if (dateVal === today && timeVal && timeVal < getCurrentTimeString()) {
+    showToast('Appointment time cannot be in the past for today.', 'error');
+    return;
+  }
   const body = {
     Appointment_ID: document.getElementById('a_id').value,
-    Date:       document.getElementById('a_date').value,
-    Time:       document.getElementById('a_time').value,
+    Date:       dateVal,
+    Time:       timeVal,
     Patient_ID: document.getElementById('a_patient').value,
     Staff_ID:   document.getElementById('a_doctor').value,
   };
@@ -558,6 +614,9 @@ async function openAdmissionModal(data=null) {
   document.getElementById('admissionSubmitBtn').textContent  = isEdit ? 'Update Admission' : 'Add Admission';
   document.getElementById('ad_editing_id').value  = isEdit ? data.Admission_ID : '';
   document.getElementById('ad_id').value          = isEdit ? data.Admission_ID : ''; document.getElementById('ad_id').disabled = isEdit;
+  // Set min date to today for admission date (no past dates allowed for new admissions)
+  const todayStr = getTodayDateString();
+  document.getElementById('ad_admit').min = todayStr;
   document.getElementById('ad_admit').value       = isEdit ? (data.Admit_Date?.split('T')[0]||'') : '';
   document.getElementById('ad_discharge').value   = isEdit ? (data.Discharge_Date?.split('T')[0]||'') : '';
   document.getElementById('ad_patient').value     = isEdit ? data.Patient_ID : '';
@@ -570,9 +629,16 @@ function editAdmission(i) { openAdmissionModal(_admissions[i]); }
 async function saveAdmission(e) {
   e.preventDefault();
   const editId = document.getElementById('ad_editing_id').value;
+  const admitDateVal = document.getElementById('ad_admit').value;
+  // Frontend date validation — only today or future dates allowed for new admissions
+  const today = getTodayDateString();
+  if (!editId && admitDateVal < today) {
+    showToast('Admission date cannot be in the past.', 'error');
+    return;
+  }
   const body = {
     Admission_ID:   document.getElementById('ad_id').value,
-    Admit_Date:     document.getElementById('ad_admit').value,
+    Admit_Date:     admitDateVal,
     Discharge_Date: document.getElementById('ad_discharge').value,
     Patient_ID:     document.getElementById('ad_patient').value,
     Room_ID:        document.getElementById('ad_room').value,
